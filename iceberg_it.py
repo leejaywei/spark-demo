@@ -229,6 +229,13 @@ class Suite:
         run_sql(self.spark, f"INSERT INTO {self.t('sample_unpart')} VALUES (1,'a'),(2,'b')")
 
         # base partitioned
+        self._reset_sample_part()
+
+    def _reset_sample_part(self):
+        """Reset sample_part to seed state for test isolation."""
+        # Try PURGE first; fall back to plain DROP (not all catalogs support PURGE)
+        try_sql(self.spark, f"DROP TABLE IF EXISTS {self.t('sample_part')} PURGE")
+        try_sql(self.spark, f"DROP TABLE IF EXISTS {self.t('sample_part')}")
         run_sql(self.spark, f"""
             CREATE TABLE {self.t("sample_part")} (
                 id bigint,
@@ -1092,8 +1099,8 @@ class Suite:
         # Delete on branch
         run_sql(self.spark, f"DELETE FROM {tbl}.branch_{branch} WHERE id=702")
         
-        # Validate: branch has one row left
-        assert_sql_count(self.spark, f"SELECT count(*) FROM {tbl}.branch_{branch}", 1, "Branch should have 1 row after delete")
+        # Validate: only 1 of the 2 test-inserted rows remains on branch
+        assert_sql_count(self.spark, f"SELECT count(*) FROM {tbl}.branch_{branch} WHERE id IN (702,703)", 1, "Branch should have 1 test row after delete")
         assert_sql_count(self.spark, f"SELECT count(*) FROM {tbl}.branch_{branch} WHERE id=702", 0, "Deleted row should not exist on branch")
         
         # Validate: main branch unchanged
@@ -2035,6 +2042,9 @@ class Suite:
             print("\n" + "=" * 120)
             print(f"[CASE] {group} :: {name}")
             print("=" * 120)
+            # Reset shared tables before each test for isolation (skip env setup)
+            if group != "00_env":
+                self._reset_sample_part()
             start = time.time()
             try:
                 fn()
