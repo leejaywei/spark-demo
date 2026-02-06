@@ -1092,8 +1092,8 @@ class Suite:
         # Delete on branch
         run_sql(self.spark, f"DELETE FROM {tbl}.branch_{branch} WHERE id=702")
         
-        # Validate: branch has one row left
-        assert_sql_count(self.spark, f"SELECT count(*) FROM {tbl}.branch_{branch}", 1, "Branch should have 1 row after delete")
+        # Validate: branch has 3 rows left (2 inherited from main + 1 inserted)
+        assert_sql_count(self.spark, f"SELECT count(*) FROM {tbl}.branch_{branch}", 3, "Branch should have 3 rows after delete")
         assert_sql_count(self.spark, f"SELECT count(*) FROM {tbl}.branch_{branch} WHERE id=702", 0, "Deleted row should not exist on branch")
         
         # Validate: main branch unchanged
