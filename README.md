@@ -140,8 +140,10 @@ This repository contains `iceberg_it.py`, a comprehensive integration test suite
 
 ## Running the Suite
 
+### Run All Tests
+
 ```bash
-# Basic execution
+# Basic execution - runs all tests
 python iceberg_it.py
 
 # With specific Spark configuration
@@ -149,6 +151,38 @@ spark-submit \
   --packages org.apache.iceberg:iceberg-spark-runtime-3.5_2.12:1.5.0 \
   iceberg_it.py
 ```
+
+### Run Specific Tests
+
+The suite supports filtering to run individual tests or test groups:
+
+```bash
+# List all available test groups and cases
+python iceberg_it.py --list
+
+# Run all tests in a specific group
+python iceberg_it.py --group 10_ddl_core
+
+# Run a specific test case (supports partial name matching)
+python iceberg_it.py --case create_table_as_select_basic
+
+# Run tests matching a pattern (e.g., all merge-related tests)
+python iceberg_it.py --case merge
+
+# Combine group and case filters
+python iceberg_it.py --group 20_writes_sql_core --case insert
+
+# Use a custom database name
+python iceberg_it.py --db my_test_db --group 10_ddl_core
+```
+
+### Command-Line Options
+
+- `--list`: List all available test groups and cases, then exit
+- `--group GROUP`: Run only tests in the specified group (e.g., `10_ddl_core`, `20_writes_sql_core`)
+- `--case CASE`: Run only tests matching the specified case name (supports partial matching)
+- `--db DB`: Database name to use for tests (default: `qa_full`)
+- `-h, --help`: Show help message with examples
 
 ## Test Results
 
