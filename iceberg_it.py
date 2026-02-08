@@ -1,3 +1,4 @@
+import argparse
 import sys
 import time
 import traceback
@@ -2031,9 +2032,34 @@ class Suite:
             ("99_cleanup", "remove_orphan_files_safe", self.proc_remove_orphan_files_safe),
         ]
 
-    def run_all(self) -> List[CaseResult]:
+    def run_all(self, group_filter: Optional[str] = None, case_filter: Optional[str] = None) -> List[CaseResult]:
+        """
+        Run all test cases, optionally filtered by group and/or case name.
+        
+        Args:
+            group_filter: If specified, only run tests in this group (exact match, e.g., "10_ddl_core")
+            case_filter: If specified, only run tests with this case name (case-insensitive partial match, 
+                        e.g., "merge" matches "merge_into_basic", "merge_with_matched_delete", etc.)
+        """
         results: List[CaseResult] = []
-        for group, name, fn in self.cases():
+        all_cases = self.cases()
+        
+        # Apply filters
+        filtered_cases = []
+        for group, name, fn in all_cases:
+            if group_filter and group != group_filter:
+                continue
+            if case_filter and case_filter.lower() not in name.lower():
+                continue
+            filtered_cases.append((group, name, fn))
+        
+        if not filtered_cases:
+            print(f"[WARNING] No tests match the filters: group={group_filter}, case={case_filter}")
+            return results
+        
+        print(f"\n[INFO] Running {len(filtered_cases)} test(s) out of {len(all_cases)} total")
+        
+        for group, name, fn in filtered_cases:
             print("\n" + "=" * 120)
             print(f"[CASE] {group} :: {name}")
             print("=" * 120)
@@ -2072,11 +2098,93 @@ def print_summary(results: List[CaseResult]):
         sys.exit(1)
 
 
+def list_all_tests(suite: Suite):
+    """List all available test cases grouped by category."""
+    print("\n" + "=" * 120)
+    print("AVAILABLE TEST GROUPS AND CASES")
+    print("=" * 120)
+    
+    all_cases = suite.cases()
+    groups = {}
+    
+    # Group cases by their group name
+    for group, name, fn in all_cases:
+        if group not in groups:
+            groups[group] = []
+        groups[group].append(name)
+    
+    # Print grouped tests
+    for group in sorted(groups.keys()):
+        print(f"\n[{group}] ({len(groups[group])} tests)")
+        for name in groups[group]:
+            print(f"  - {name}")
+    
+    print(f"\n{'='*120}")
+    print(f"TOTAL TESTS: {len(all_cases)}")
+    print(f"TOTAL GROUPS: {len(groups)}")
+    print("=" * 120)
+
+
 def main():
+    parser = argparse.ArgumentParser(
+        description="Apache Iceberg integration test suite for Spark",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Run all tests
+  python iceberg_it.py
+  
+  # List all available tests
+  python iceberg_it.py --list
+  
+  # Run all tests in a specific group
+  python iceberg_it.py --group 10_ddl_core
+  
+  # Run a specific test case
+  python iceberg_it.py --case create_table_as_select_basic
+  
+  # Run a specific test in a specific group
+  python iceberg_it.py --group 10_ddl_core --case create_table_as_select_basic
+  
+  # Run tests matching a pattern (partial case name match)
+  python iceberg_it.py --case merge
+        """
+    )
+    parser.add_argument(
+        "--group", 
+        type=str, 
+        help="Run only tests in the specified group (e.g., '10_ddl_core', '20_writes_sql_core')"
+    )
+    parser.add_argument(
+        "--case", 
+        type=str, 
+        help="Run only tests matching the specified case name (supports partial match)"
+    )
+    parser.add_argument(
+        "--list", 
+        action="store_true", 
+        help="List all available test groups and cases, then exit"
+    )
+    parser.add_argument(
+        "--db",
+        type=str,
+        default="qa_full",
+        help="Database name to use for tests (default: qa_full)"
+    )
+    
+    args = parser.parse_args()
+    
     spark = get_spark()
     try:
-        suite = Suite(spark, db="qa_full")
-        results = suite.run_all()
+        suite = Suite(spark, db=args.db)
+        
+        # If --list is specified, just list tests and exit
+        if args.list:
+            list_all_tests(suite)
+            return
+        
+        # Run tests with optional filters
+        results = suite.run_all(group_filter=args.group, case_filter=args.case)
         print_summary(results)
     finally:
         spark.stop()
