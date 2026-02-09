@@ -815,6 +815,411 @@ class Suite:
         run_sql(self.spark, f"ALTER TABLE {tbl} DROP BRANCH `{branch}`")
 
     # ----------------------------
+    # Data Type Tests (Single Table per Type)
+    # ----------------------------
+    def test_create_boolean_table(self):
+        """Test table with boolean data type"""
+        tbl = self.t("test_boolean_table")
+        run_sql(self.spark, f"DROP TABLE IF EXISTS {tbl}")
+        run_sql(self.spark, f"""
+            CREATE TABLE {tbl} (
+                id bigint,
+                bool_col boolean
+            ) USING iceberg
+        """)
+        run_sql(self.spark, f"INSERT INTO {tbl} VALUES (1, true), (2, false), (3, NULL)")
+        assert_sql_count(self.spark, f"SELECT * FROM {tbl}", 3, "Should have 3 rows")
+        assert_sql_count(self.spark, f"SELECT * FROM {tbl} WHERE bool_col = true", 1, "Should have 1 true value")
+        assert_sql_count(self.spark, f"SELECT * FROM {tbl} WHERE bool_col = false", 1, "Should have 1 false value")
+        run_sql(self.spark, f"SELECT * FROM {tbl} ORDER BY id", show=True)
+        run_sql(self.spark, f"DROP TABLE {tbl}")
+
+    def test_create_byte_table(self):
+        """Test table with byte (tinyint) data type"""
+        tbl = self.t("test_byte_table")
+        run_sql(self.spark, f"DROP TABLE IF EXISTS {tbl}")
+        run_sql(self.spark, f"""
+            CREATE TABLE {tbl} (
+                id bigint,
+                byte_col tinyint
+            ) USING iceberg
+        """)
+        run_sql(self.spark, f"INSERT INTO {tbl} VALUES (1, 127), (2, -128), (3, 0), (4, NULL)")
+        assert_sql_count(self.spark, f"SELECT * FROM {tbl}", 4, "Should have 4 rows")
+        assert_sql_scalar(self.spark, f"SELECT byte_col FROM {tbl} WHERE id = 1", 127, "Max byte value")
+        assert_sql_scalar(self.spark, f"SELECT byte_col FROM {tbl} WHERE id = 2", -128, "Min byte value")
+        run_sql(self.spark, f"SELECT * FROM {tbl} ORDER BY id", show=True)
+        run_sql(self.spark, f"DROP TABLE {tbl}")
+
+    def test_create_short_table(self):
+        """Test table with short (smallint) data type"""
+        tbl = self.t("test_short_table")
+        run_sql(self.spark, f"DROP TABLE IF EXISTS {tbl}")
+        run_sql(self.spark, f"""
+            CREATE TABLE {tbl} (
+                id bigint,
+                short_col smallint
+            ) USING iceberg
+        """)
+        run_sql(self.spark, f"INSERT INTO {tbl} VALUES (1, 32767), (2, -32768), (3, 0), (4, NULL)")
+        assert_sql_count(self.spark, f"SELECT * FROM {tbl}", 4, "Should have 4 rows")
+        assert_sql_scalar(self.spark, f"SELECT short_col FROM {tbl} WHERE id = 1", 32767, "Max short value")
+        assert_sql_scalar(self.spark, f"SELECT short_col FROM {tbl} WHERE id = 2", -32768, "Min short value")
+        run_sql(self.spark, f"SELECT * FROM {tbl} ORDER BY id", show=True)
+        run_sql(self.spark, f"DROP TABLE {tbl}")
+
+    def test_create_integer_table(self):
+        """Test table with integer data type"""
+        tbl = self.t("test_integer_table")
+        run_sql(self.spark, f"DROP TABLE IF EXISTS {tbl}")
+        run_sql(self.spark, f"""
+            CREATE TABLE {tbl} (
+                id bigint,
+                int_col int
+            ) USING iceberg
+        """)
+        run_sql(self.spark, f"INSERT INTO {tbl} VALUES (1, 2147483647), (2, -2147483648), (3, 0), (4, NULL)")
+        assert_sql_count(self.spark, f"SELECT * FROM {tbl}", 4, "Should have 4 rows")
+        assert_sql_scalar(self.spark, f"SELECT int_col FROM {tbl} WHERE id = 1", 2147483647, "Max int value")
+        assert_sql_scalar(self.spark, f"SELECT int_col FROM {tbl} WHERE id = 2", -2147483648, "Min int value")
+        run_sql(self.spark, f"SELECT * FROM {tbl} ORDER BY id", show=True)
+        run_sql(self.spark, f"DROP TABLE {tbl}")
+
+    def test_create_long_table(self):
+        """Test table with long (bigint) data type"""
+        tbl = self.t("test_long_table")
+        run_sql(self.spark, f"DROP TABLE IF EXISTS {tbl}")
+        run_sql(self.spark, f"""
+            CREATE TABLE {tbl} (
+                id bigint,
+                long_col bigint
+            ) USING iceberg
+        """)
+        run_sql(self.spark, f"INSERT INTO {tbl} VALUES (1, 9223372036854775807), (2, -9223372036854775808), (3, 0), (4, NULL)")
+        assert_sql_count(self.spark, f"SELECT * FROM {tbl}", 4, "Should have 4 rows")
+        assert_sql_scalar(self.spark, f"SELECT long_col FROM {tbl} WHERE id = 1", 9223372036854775807, "Max long value")
+        run_sql(self.spark, f"SELECT * FROM {tbl} ORDER BY id", show=True)
+        run_sql(self.spark, f"DROP TABLE {tbl}")
+
+    def test_create_float_table(self):
+        """Test table with float data type"""
+        tbl = self.t("test_float_table")
+        run_sql(self.spark, f"DROP TABLE IF EXISTS {tbl}")
+        run_sql(self.spark, f"""
+            CREATE TABLE {tbl} (
+                id bigint,
+                float_col float
+            ) USING iceberg
+        """)
+        run_sql(self.spark, f"INSERT INTO {tbl} VALUES (1, 3.14159), (2, -2.71828), (3, 0.0), (4, NULL)")
+        assert_sql_count(self.spark, f"SELECT * FROM {tbl}", 4, "Should have 4 rows")
+        run_sql(self.spark, f"SELECT * FROM {tbl} ORDER BY id", show=True)
+        run_sql(self.spark, f"DROP TABLE {tbl}")
+
+    def test_create_double_table(self):
+        """Test table with double data type"""
+        tbl = self.t("test_double_table")
+        run_sql(self.spark, f"DROP TABLE IF EXISTS {tbl}")
+        run_sql(self.spark, f"""
+            CREATE TABLE {tbl} (
+                id bigint,
+                double_col double
+            ) USING iceberg
+        """)
+        run_sql(self.spark, f"INSERT INTO {tbl} VALUES (1, 3.141592653589793), (2, -2.718281828459045), (3, 0.0), (4, NULL)")
+        assert_sql_count(self.spark, f"SELECT * FROM {tbl}", 4, "Should have 4 rows")
+        run_sql(self.spark, f"SELECT * FROM {tbl} ORDER BY id", show=True)
+        run_sql(self.spark, f"DROP TABLE {tbl}")
+
+    def test_create_decimal_table(self):
+        """Test table with decimal data type"""
+        tbl = self.t("test_decimal_table")
+        run_sql(self.spark, f"DROP TABLE IF EXISTS {tbl}")
+        run_sql(self.spark, f"""
+            CREATE TABLE {tbl} (
+                id bigint,
+                decimal_col decimal(10, 2)
+            ) USING iceberg
+        """)
+        run_sql(self.spark, f"INSERT INTO {tbl} VALUES (1, 12345.67), (2, -9999.99), (3, 0.00), (4, NULL)")
+        assert_sql_count(self.spark, f"SELECT * FROM {tbl}", 4, "Should have 4 rows")
+        run_sql(self.spark, f"SELECT * FROM {tbl} ORDER BY id", show=True)
+        run_sql(self.spark, f"DROP TABLE {tbl}")
+
+    def test_create_date_table(self):
+        """Test table with date data type"""
+        tbl = self.t("test_date_table")
+        run_sql(self.spark, f"DROP TABLE IF EXISTS {tbl}")
+        run_sql(self.spark, f"""
+            CREATE TABLE {tbl} (
+                id bigint,
+                date_col date
+            ) USING iceberg
+        """)
+        run_sql(self.spark, f"INSERT INTO {tbl} VALUES (1, DATE '2024-01-15'), (2, DATE '1970-01-01'), (3, DATE '2999-12-31'), (4, NULL)")
+        assert_sql_count(self.spark, f"SELECT * FROM {tbl}", 4, "Should have 4 rows")
+        run_sql(self.spark, f"SELECT * FROM {tbl} ORDER BY id", show=True)
+        run_sql(self.spark, f"DROP TABLE {tbl}")
+
+    def test_create_timestamp_table(self):
+        """Test table with timestamp data type"""
+        tbl = self.t("test_timestamp_table")
+        run_sql(self.spark, f"DROP TABLE IF EXISTS {tbl}")
+        run_sql(self.spark, f"""
+            CREATE TABLE {tbl} (
+                id bigint,
+                timestamp_col timestamp
+            ) USING iceberg
+        """)
+        run_sql(self.spark, f"INSERT INTO {tbl} VALUES (1, TIMESTAMP '2024-01-15 12:30:45'), (2, TIMESTAMP '1970-01-01 00:00:00'), (3, TIMESTAMP '2999-12-31 23:59:59'), (4, NULL)")
+        assert_sql_count(self.spark, f"SELECT * FROM {tbl}", 4, "Should have 4 rows")
+        run_sql(self.spark, f"SELECT * FROM {tbl} ORDER BY id", show=True)
+        run_sql(self.spark, f"DROP TABLE {tbl}")
+
+    def test_create_char_table(self):
+        """Test table with char data type"""
+        tbl = self.t("test_char_table")
+        run_sql(self.spark, f"DROP TABLE IF EXISTS {tbl}")
+        run_sql(self.spark, f"""
+            CREATE TABLE {tbl} (
+                id bigint,
+                char_col char(10)
+            ) USING iceberg
+        """)
+        run_sql(self.spark, f"INSERT INTO {tbl} VALUES (1, 'hello'), (2, 'test'), (3, 'a'), (4, NULL)")
+        assert_sql_count(self.spark, f"SELECT * FROM {tbl}", 4, "Should have 4 rows")
+        run_sql(self.spark, f"SELECT * FROM {tbl} ORDER BY id", show=True)
+        run_sql(self.spark, f"DROP TABLE {tbl}")
+
+    def test_create_varchar_table(self):
+        """Test table with varchar data type"""
+        tbl = self.t("test_varchar_table")
+        run_sql(self.spark, f"DROP TABLE IF EXISTS {tbl}")
+        run_sql(self.spark, f"""
+            CREATE TABLE {tbl} (
+                id bigint,
+                varchar_col varchar(50)
+            ) USING iceberg
+        """)
+        run_sql(self.spark, f"INSERT INTO {tbl} VALUES (1, 'hello world'), (2, 'test varchar'), (3, 'a'), (4, NULL)")
+        assert_sql_count(self.spark, f"SELECT * FROM {tbl}", 4, "Should have 4 rows")
+        run_sql(self.spark, f"SELECT * FROM {tbl} ORDER BY id", show=True)
+        run_sql(self.spark, f"DROP TABLE {tbl}")
+
+    def test_create_string_table(self):
+        """Test table with string data type"""
+        tbl = self.t("test_string_table")
+        run_sql(self.spark, f"DROP TABLE IF EXISTS {tbl}")
+        run_sql(self.spark, f"""
+            CREATE TABLE {tbl} (
+                id bigint,
+                string_col string
+            ) USING iceberg
+        """)
+        run_sql(self.spark, f"INSERT INTO {tbl} VALUES (1, 'hello world'), (2, 'test string with a longer text'), (3, ''), (4, NULL)")
+        assert_sql_count(self.spark, f"SELECT * FROM {tbl}", 4, "Should have 4 rows")
+        run_sql(self.spark, f"SELECT * FROM {tbl} ORDER BY id", show=True)
+        run_sql(self.spark, f"DROP TABLE {tbl}")
+
+    def test_create_binary_table(self):
+        """Test table with binary data type"""
+        tbl = self.t("test_binary_table")
+        run_sql(self.spark, f"DROP TABLE IF EXISTS {tbl}")
+        run_sql(self.spark, f"""
+            CREATE TABLE {tbl} (
+                id bigint,
+                binary_col binary
+            ) USING iceberg
+        """)
+        run_sql(self.spark, f"INSERT INTO {tbl} VALUES (1, CAST('hello' AS BINARY)), (2, CAST('world' AS BINARY)), (3, CAST('' AS BINARY)), (4, NULL)")
+        assert_sql_count(self.spark, f"SELECT * FROM {tbl}", 4, "Should have 4 rows")
+        run_sql(self.spark, f"SELECT id, CAST(binary_col AS STRING) as binary_str FROM {tbl} ORDER BY id", show=True)
+        run_sql(self.spark, f"DROP TABLE {tbl}")
+
+    def test_create_uuid_table(self):
+        """Test table with UUID data type (Iceberg extension)"""
+        tbl = self.t("test_uuid_table")
+        run_sql(self.spark, f"DROP TABLE IF EXISTS {tbl}")
+        
+        # Try to create table with UUID type
+        ok, err = try_sql(self.spark, f"""
+            CREATE TABLE {tbl} (
+                id bigint,
+                uuid_col uuid
+            ) USING iceberg
+        """)
+        
+        if not ok:
+            # UUID type may not be supported in all Spark versions
+            raise SkipCase(f"UUID type not supported: {err}")
+        
+        # Insert UUIDs using string literals
+        ok2, err2 = try_sql(self.spark, f"""
+            INSERT INTO {tbl} VALUES 
+            (1, uuid()),
+            (2, uuid()),
+            (3, NULL)
+        """)
+        
+        if not ok2:
+            raise SkipCase(f"UUID function not supported: {err2}")
+        
+        assert_sql_count(self.spark, f"SELECT * FROM {tbl}", 3, "Should have 3 rows")
+        run_sql(self.spark, f"SELECT * FROM {tbl} ORDER BY id", show=True)
+        run_sql(self.spark, f"DROP TABLE {tbl}")
+
+    def test_create_fixed_table(self):
+        """Test table with fixed-length binary data type"""
+        tbl = self.t("test_fixed_table")
+        run_sql(self.spark, f"DROP TABLE IF EXISTS {tbl}")
+        
+        # Iceberg's fixed type is typically represented as binary with specific length
+        # In Spark SQL, we use binary type
+        ok, err = try_sql(self.spark, f"""
+            CREATE TABLE {tbl} (
+                id bigint,
+                fixed_col binary
+            ) USING iceberg
+            TBLPROPERTIES ('format-version'='2')
+        """)
+        
+        if not ok:
+            raise SkipCase(f"Fixed binary type not supported: {err}")
+        
+        run_sql(self.spark, f"INSERT INTO {tbl} VALUES (1, CAST('12345' AS BINARY)), (2, CAST('abcde' AS BINARY)), (3, NULL)")
+        assert_sql_count(self.spark, f"SELECT * FROM {tbl}", 3, "Should have 3 rows")
+        run_sql(self.spark, f"SELECT id, CAST(fixed_col AS STRING) as fixed_str FROM {tbl} ORDER BY id", show=True)
+        run_sql(self.spark, f"DROP TABLE {tbl}")
+
+    def test_create_struct_table(self):
+        """Test table with struct (nested) data type"""
+        tbl = self.t("test_struct_table")
+        run_sql(self.spark, f"DROP TABLE IF EXISTS {tbl}")
+        run_sql(self.spark, f"""
+            CREATE TABLE {tbl} (
+                id bigint,
+                struct_col struct<name: string, age: int, city: string>
+            ) USING iceberg
+        """)
+        run_sql(self.spark, f"""
+            INSERT INTO {tbl} VALUES 
+            (1, named_struct('name', 'Alice', 'age', 30, 'city', 'NYC')),
+            (2, named_struct('name', 'Bob', 'age', 25, 'city', 'SF')),
+            (3, NULL)
+        """)
+        assert_sql_count(self.spark, f"SELECT * FROM {tbl}", 3, "Should have 3 rows")
+        run_sql(self.spark, f"SELECT id, struct_col.name, struct_col.age, struct_col.city FROM {tbl} ORDER BY id", show=True)
+        run_sql(self.spark, f"DROP TABLE {tbl}")
+
+    def test_create_array_table(self):
+        """Test table with array/list data type"""
+        tbl = self.t("test_array_table")
+        run_sql(self.spark, f"DROP TABLE IF EXISTS {tbl}")
+        run_sql(self.spark, f"""
+            CREATE TABLE {tbl} (
+                id bigint,
+                array_col array<string>
+            ) USING iceberg
+        """)
+        run_sql(self.spark, f"""
+            INSERT INTO {tbl} VALUES 
+            (1, array('apple', 'banana', 'cherry')),
+            (2, array('red', 'green', 'blue')),
+            (3, array()),
+            (4, NULL)
+        """)
+        assert_sql_count(self.spark, f"SELECT * FROM {tbl}", 4, "Should have 4 rows")
+        run_sql(self.spark, f"SELECT id, array_col, size(array_col) as array_size FROM {tbl} ORDER BY id", show=True)
+        run_sql(self.spark, f"DROP TABLE {tbl}")
+
+    def test_create_map_table(self):
+        """Test table with map data type"""
+        tbl = self.t("test_map_table")
+        run_sql(self.spark, f"DROP TABLE IF EXISTS {tbl}")
+        run_sql(self.spark, f"""
+            CREATE TABLE {tbl} (
+                id bigint,
+                map_col map<string, int>
+            ) USING iceberg
+        """)
+        run_sql(self.spark, f"""
+            INSERT INTO {tbl} VALUES 
+            (1, map('key1', 100, 'key2', 200)),
+            (2, map('a', 1, 'b', 2, 'c', 3)),
+            (3, map()),
+            (4, NULL)
+        """)
+        assert_sql_count(self.spark, f"SELECT * FROM {tbl}", 4, "Should have 4 rows")
+        run_sql(self.spark, f"SELECT id, map_col, size(map_col) as map_size FROM {tbl} ORDER BY id", show=True)
+        run_sql(self.spark, f"DROP TABLE {tbl}")
+
+    def test_create_variant_table(self):
+        """Test table with variant data type (if supported)"""
+        tbl = self.t("test_variant_table")
+        run_sql(self.spark, f"DROP TABLE IF EXISTS {tbl}")
+        
+        # Variant is a newer Spark/Iceberg feature that may not be universally supported
+        ok, err = try_sql(self.spark, f"""
+            CREATE TABLE {tbl} (
+                id bigint,
+                variant_col variant
+            ) USING iceberg
+        """)
+        
+        if not ok:
+            raise SkipCase(f"VARIANT type not supported: {err}")
+        
+        # Try inserting variant data
+        ok2, err2 = try_sql(self.spark, f"""
+            INSERT INTO {tbl} VALUES 
+            (1, parse_json('"hello"')),
+            (2, parse_json('123')),
+            (3, parse_json('{{"key": "value"}}')),
+            (4, NULL)
+        """)
+        
+        if not ok2:
+            raise SkipCase(f"VARIANT operations not supported: {err2}")
+        
+        assert_sql_count(self.spark, f"SELECT * FROM {tbl}", 4, "Should have 4 rows")
+        run_sql(self.spark, f"SELECT * FROM {tbl} ORDER BY id", show=True)
+        run_sql(self.spark, f"DROP TABLE {tbl}")
+
+    def test_create_time_table(self):
+        """Test table with time data type (if supported)"""
+        tbl = self.t("test_time_table")
+        run_sql(self.spark, f"DROP TABLE IF EXISTS {tbl}")
+        
+        # Time type is not a standard Spark SQL type, but some systems support it
+        # Iceberg spec includes time type, but Spark may not fully support it
+        ok, err = try_sql(self.spark, f"""
+            CREATE TABLE {tbl} (
+                id bigint,
+                time_col time
+            ) USING iceberg
+        """)
+        
+        if not ok:
+            # Time type not supported, skip this test
+            raise SkipCase(f"TIME type not supported in Spark/Iceberg: {err}")
+        
+        # If time type is supported, try inserting data
+        ok2, err2 = try_sql(self.spark, f"""
+            INSERT INTO {tbl} VALUES 
+            (1, TIME '12:30:45'),
+            (2, TIME '00:00:00'),
+            (3, TIME '23:59:59'),
+            (4, NULL)
+        """)
+        
+        if not ok2:
+            raise SkipCase(f"TIME operations not supported: {err2}")
+        
+        assert_sql_count(self.spark, f"SELECT * FROM {tbl}", 4, "Should have 4 rows")
+        run_sql(self.spark, f"SELECT * FROM {tbl} ORDER BY id", show=True)
+        run_sql(self.spark, f"DROP TABLE {tbl}")
+
+    # ----------------------------
     # Writes (SQL)
     # ----------------------------
     def writes_insert_into_and_insert_select(self):
@@ -1903,6 +2308,7 @@ class Suite:
         - 10_ddl_core: Core DDL operations (CREATE, ALTER, DROP)
         - 11_ddl_views: View operations
         - 12_ddl_branch_tag: Branch and tag DDL
+        - 15_ddl_data_types: Data type tests (single table per type)
         - 20_writes_sql_core: Core SQL writes (INSERT, UPDATE, DELETE, INSERT OVERWRITE)
         - 21_writes_sql_merge: SQL MERGE INTO operations
         - 22_writes_sql_branch: Branch-specific writes
@@ -1952,6 +2358,29 @@ class Suite:
             ("12_ddl_branch_tag", "create_or_replace_tag", self.ddl_tag_create_or_replace),
             ("12_ddl_branch_tag", "drop_tag_if_exists", self.ddl_tag_drop_if_exists),
             ("12_ddl_branch_tag", "create_branch_with_retention", self.ddl_branch_with_retention),
+
+            # Data type tests - single table per type
+            ("15_ddl_data_types", "create_boolean_table", self.test_create_boolean_table),
+            ("15_ddl_data_types", "create_byte_table", self.test_create_byte_table),
+            ("15_ddl_data_types", "create_short_table", self.test_create_short_table),
+            ("15_ddl_data_types", "create_integer_table", self.test_create_integer_table),
+            ("15_ddl_data_types", "create_long_table", self.test_create_long_table),
+            ("15_ddl_data_types", "create_float_table", self.test_create_float_table),
+            ("15_ddl_data_types", "create_double_table", self.test_create_double_table),
+            ("15_ddl_data_types", "create_decimal_table", self.test_create_decimal_table),
+            ("15_ddl_data_types", "create_date_table", self.test_create_date_table),
+            ("15_ddl_data_types", "create_timestamp_table", self.test_create_timestamp_table),
+            ("15_ddl_data_types", "create_char_table", self.test_create_char_table),
+            ("15_ddl_data_types", "create_varchar_table", self.test_create_varchar_table),
+            ("15_ddl_data_types", "create_string_table", self.test_create_string_table),
+            ("15_ddl_data_types", "create_binary_table", self.test_create_binary_table),
+            ("15_ddl_data_types", "create_uuid_table", self.test_create_uuid_table),
+            ("15_ddl_data_types", "create_fixed_table", self.test_create_fixed_table),
+            ("15_ddl_data_types", "create_struct_table", self.test_create_struct_table),
+            ("15_ddl_data_types", "create_array_table", self.test_create_array_table),
+            ("15_ddl_data_types", "create_map_table", self.test_create_map_table),
+            ("15_ddl_data_types", "create_variant_table", self.test_create_variant_table),
+            ("15_ddl_data_types", "create_time_table", self.test_create_time_table),
 
             # Core SQL writes
             ("20_writes_sql_core", "insert_into_and_insert_select", self.writes_insert_into_and_insert_select),
