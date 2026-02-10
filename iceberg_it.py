@@ -1721,8 +1721,10 @@ class Suite:
         run_sql(self.spark, f"SELECT * FROM {snap_tbl} ORDER BY id", show=True)
         
         # Clean up
-        run_sql(self.spark, f"DROP TABLE IF EXISTS {snap_tbl}")
-        run_sql(self.spark, f"DROP TABLE IF EXISTS {src_tbl}")
+        try_sql(self.spark, f"DROP TABLE IF EXISTS {snap_tbl} PURGE")
+        try_sql(self.spark, f"DROP TABLE IF EXISTS {snap_tbl}")
+        try_sql(self.spark, f"DROP TABLE IF EXISTS {src_tbl} PURGE")
+        try_sql(self.spark, f"DROP TABLE IF EXISTS {src_tbl}")
 
     def proc_set_current_snapshot_with_ref(self):
         """system.set_current_snapshot using ref parameter (branch or tag)."""
