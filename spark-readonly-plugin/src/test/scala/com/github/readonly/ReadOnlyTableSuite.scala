@@ -32,6 +32,8 @@ class ReadOnlyTableSuite extends AnyFunSuite with BeforeAndAfterAll {
       .config("spark.sql.warehouse.dir", warehouseDir.getAbsolutePath)
       .config("spark.ui.enabled", "false")
       .config("spark.driver.bindAddress", "127.0.0.1")
+      .config("javax.jdo.option.ConnectionURL",
+        s"jdbc:derby:;databaseName=${warehouseDir.getAbsolutePath}/metastore_db;create=true")
       .enableHiveSupport()
       .getOrCreate()
 
@@ -56,9 +58,6 @@ class ReadOnlyTableSuite extends AnyFunSuite with BeforeAndAfterAll {
   override def afterAll(): Unit = {
     try {
       if (spark != null) {
-        spark.sql("DROP TABLE IF EXISTS ro_test.readonly_v1")
-        spark.sql("DROP TABLE IF EXISTS ro_test.normal_v1")
-        spark.sql("DROP DATABASE IF EXISTS ro_test CASCADE")
         spark.stop()
       }
     } finally {
