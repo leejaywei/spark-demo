@@ -10,6 +10,9 @@ import org.apache.spark.sql.types.{LongType, StringType}
  *
  * Materializes the query result into a backing Hive table and registers
  * metadata in [[MaterializedViewCatalog]].
+ *
+ * @param viewName simple or qualified MV name (e.g. "my_mv" or "db.my_mv")
+ * @param query    the SQL SELECT statement to materialize
  */
 case class CreateMaterializedViewCommand(viewName: String, query: String)
     extends LeafRunnableCommand {
@@ -43,6 +46,8 @@ case class CreateMaterializedViewCommand(viewName: String, query: String)
  * DROP MATERIALIZED VIEW name
  *
  * Drops the backing table and removes metadata from [[MaterializedViewCatalog]].
+ *
+ * @param viewName simple or qualified MV name to drop
  */
 case class DropMaterializedViewCommand(viewName: String)
     extends LeafRunnableCommand {
@@ -70,6 +75,8 @@ case class DropMaterializedViewCommand(viewName: String)
  *
  * Full refresh: re-executes the defining query and overwrites the
  * backing table with the new result.
+ *
+ * @param viewName simple or qualified MV name to refresh
  */
 case class RefreshMaterializedViewCommand(viewName: String)
     extends LeafRunnableCommand {
@@ -104,6 +111,8 @@ case class RefreshMaterializedViewCommand(viewName: String)
  * Incremental refresh: in a production system this would track source-table
  * changes and apply only the delta.  Here we demonstrate the pattern with
  * a full re-computation (overwrite) as a fallback.
+ *
+ * @param viewName simple or qualified MV name to incrementally refresh
  */
 case class RefreshMaterializedViewIncrementalCommand(viewName: String)
     extends LeafRunnableCommand {
