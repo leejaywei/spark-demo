@@ -40,16 +40,23 @@ class MaterializedViewParser(delegate: ParserInterface) extends ParserInterface 
 
   private def parseCreateMV(sql: String): CreateMaterializedViewCommand = {
     // CREATE MATERIALIZED VIEW <name> AS <query>
-    val asIndex = sql.toUpperCase.indexOf(" AS ")
-    if (asIndex < 0) {
-      throw new org.apache.spark.sql.AnalysisException(
-        errorClass = "_LEGACY_ERROR_TEMP_0035",
-        messageParameters = Map("message" ->
-          "Expected 'AS' in CREATE MATERIALIZED VIEW statement"))
+    // The view name is a simple or qualified identifier (e.g. "mv1" or "db.mv1")
+    // followed by the AS keyword and the SELECT query.
+    // We match the first AS that comes directly after the view name portion.
+    val prefix = "CREATE MATERIALIZED VIEW "
+    val rest = sql.substring(prefix.length)
+
+    // Match: viewName AS query  (AS must be word-bounded)
+    val pattern = """(?is)^(\S+)\s+AS\s+(.+)$""".r
+    rest match {
+      case pattern(name, query) =>
+        CreateMaterializedViewCommand(name.trim, query.trim)
+      case _ =>
+        throw new org.apache.spark.sql.AnalysisException(
+          errorClass = "_LEGACY_ERROR_TEMP_0035",
+          messageParameters = Map("message" ->
+            "Expected 'AS' in CREATE MATERIALIZED VIEW statement"))
     }
-    val nameAndPrefix = sql.substring("CREATE MATERIALIZED VIEW ".length, asIndex).trim
-    val query = sql.substring(asIndex + 4).trim
-    CreateMaterializedViewCommand(nameAndPrefix, query)
   }
 
   private def parseDropMV(sql: String): DropMaterializedViewCommand = {
